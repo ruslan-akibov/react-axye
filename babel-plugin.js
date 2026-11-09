@@ -9,7 +9,7 @@ export default function babelPluginAxye({ types: t }) {
   }
 
   return {
-    name: 'babel-plugin-react-axye',
+    name: 'babel-plugin-axye',
     visitor: {
       Program: {
         enter(path) {

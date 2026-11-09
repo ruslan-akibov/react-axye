@@ -20,7 +20,7 @@ Are you ready for some real ancient sorcery?
 Imagine you have a `React.Component` and you want to use its `state` as a *Store*:
 
 ```js
-import { Axye } from 'react-axye';
+import { Axye } from 'axye';
 
 class MyStore extends Axye {
   state = {
@@ -46,7 +46,7 @@ class MyStore extends Axye {
 Imagine you would like to use this *Store* in several places:
 
 ```js
-import { useAxye } from 'react-axye';
+import { useAxye } from 'axye';
 
 function First() {
   const { state: { count }, incCount } = useAxye(MyStore);
@@ -75,7 +75,7 @@ Since your *Store* is a `React.Component`, you can use it in any way possible:
 
 To handle loading states and errors, you can use the `@track` decorator:
 ```ts
-import { Axye, track } from 'react-axye';
+import { Axye, track } from 'axye';
 
 interface MyStoreState {
   value: string;
@@ -113,7 +113,7 @@ The global `isLoading` state is available as well.
 Please place the compiler after all other plugins.
 > ⚠️ You also need to configure modern decorators if you want to use `@track`.
 
-* `react-axye/babel` - if you are using Babel:
+* `axye/babel` - if you are using Babel:
 ```json
 {
   "presets": [
@@ -122,17 +122,17 @@ Please place the compiler after all other plugins.
   "plugins": [
     ["@babel/plugin-proposal-decorators", { "version": "2023-11" }],
 
-    "react-axye/babel"
+    "axye/babel"
   ]
 }
 ```
 
-* `react-axye/vite` - if you are using Vite:
+* `axye/vite` - if you are using Vite:
 ```js
 import { defineConfig } from 'vite';
 import babel from '@rolldown/plugin-babel'; // You should have this plugin
 import react from '@vitejs/plugin-react';
-import axye from 'react-axye/vite';
+import axye from 'axye/vite';
 
 export default defineConfig({
   plugins: [
