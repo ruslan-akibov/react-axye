@@ -1,0 +1,57 @@
+{
+  "name": "react-axye",
+  "version": "0.0.1",
+  "description": "A lightweight state manager combining the familiarity of React Classes with zero-overhead compiled selectors",
+  "keywords": ["react", "state-management", "oop", "compiler", "context", "selector"],
+  "author": "RA",
+  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruslan-akibov/react-axye.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruslan-akibov/react-axye/issues"
+  },
+  "homepage": "https://github.com/ruslan-akibov/react-axye",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./babel": {
+      "types": "./babel-plugin.d.ts",
+      "default": "./babel-plugin.js"
+    },
+    "./vite": {
+      "types": "./vite-plugin.d.ts",
+      "default": "./vite-plugin.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "class.js",
+    "hook.js",
+    "track.js",
+    "vite-plugin.js",
+    "vite-plugin.d.ts",
+    "babel-plugin.js",
+    "babel-plugin.d.ts",
+    "logo.svg"
+  ],
+  "dependencies": {
+    "immer": "^10.0.0 || ^11.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "@rolldown/plugin-babel": "^0.2.0 || ^0.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@rolldown/plugin-babel": {
+      "optional": true
+    }
+  }
+}
