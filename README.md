@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="./logo.svg" alt="axye" width="128" />
+  <img src="https://github.com/ruslan-akibov/react-axye/raw/main/logo.svg" alt="axye" width="128" />
 </p>
 
 # Axye
