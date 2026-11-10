@@ -1,6 +1,6 @@
 {
   "name": "axye",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A lightweight state manager combining the familiarity of React Classes with zero-overhead compiled selectors",
   "keywords": ["react", "state-management", "oop", "compiler", "context", "selector"],
   "author": "RA",
