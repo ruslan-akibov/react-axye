@@ -41,6 +41,7 @@ class MyStore extends Axye {
 * `setState` works synchronously, without triggering any lifecycle hooks or re-renders.
 * Immer is supported out of the box when using the functional form of `setState`.
 
+
 ## Hook 
 
 Imagine you would like to use this *Store* in several places:
@@ -108,6 +109,7 @@ function Second() {
 
 The global `isLoading` state is available as well.
 
+
 ## Plugin
 
 Please place the compiler after all other plugins.
@@ -161,3 +163,8 @@ Under the hood, the compiler creates granular static selectors (or memoized ones
 * Array rest patterns, such as `const { state: { items: [ first, ...rest ] } } = useAxye(...)` are not supported yet.
 
 * Global *Store* instances are not supported with server-side rendering.
+
+
+## Example
+
+You might want to check out the [sample project](https://github.com/ruslan-akibov/axye-sample) to see how it works with Webpack and Vite.
