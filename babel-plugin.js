@@ -1,4 +1,4 @@
-const axe = '\u{1FA93}'; 
+const axe = '\u{1FA93}';
 
 export default function babelPluginAxye({ types: t }) {
   function getKeyName(keyNode) {
@@ -27,7 +27,7 @@ export default function babelPluginAxye({ types: t }) {
         const { right } = path.node;
 
         if (t.isCallExpression(right) && t.isIdentifier(right.callee, { name: 'useAxye' })) {
-          throw path.buildCodeFrameError(`[${axe} Axye Compiler] Assignment is not supported - use const/let in declaration.`);
+          throw path.buildCodeFrameError(`[${axe} Axye Compiler] Assignment is not supported - use const/let/var in declaration.`);
         }
       },
 
@@ -41,6 +41,7 @@ export default function babelPluginAxye({ types: t }) {
         if (t.isCallExpression(init) && t.isIdentifier(init.callee, { name: 'useAxye' }) && t.isObjectPattern(id)) {
           if (!init.arguments || init.arguments.length === 0) return;
 
+          const declKind = path.node.kind;
           const StoreClassArg = t.cloneNode(init.arguments[0]);
           const programPath = path.findParent((p) => p.isProgram());
           const newNodes = [];
@@ -61,23 +62,26 @@ export default function babelPluginAxye({ types: t }) {
             return storeInstanceId;
           }
 
-          function extractArrayPaths(elements, currentPath, currentDynamicSelectorId, dynamicKeysAccumulator) {
+          function extractArrayPaths(elements, currentPath, currentDynamicSelectorId) {
             elements.forEach((elem, index) => {
               if (elem === null) return;
 
               if (t.isRestElement(elem)) {
-                throw path.buildCodeFrameError(`[${axe} Axye Compiler] Rest element in arrays is not supported - destructure array separately.`);
+                throw path.buildCodeFrameError(`[${axe} Axye Compiler] Rest element is not supported - destructure array separately.`);
               }
 
               const keyNode = t.numericLiteral(index);
               const mockProp = t.objectProperty(keyNode, elem, true);
 
-              extractStatePaths([mockProp], currentPath, currentDynamicSelectorId, dynamicKeysAccumulator);
+              extractStatePaths([mockProp], currentPath, currentDynamicSelectorId);
             });
           }
 
-          function extractStatePaths(properties, currentPath = ['state'], currentDynamicSelectorId = null, dynamicKeysAccumulator = []) {
+          function extractStatePaths(properties, currentPath = ['state'], currentDynamicSelectorId = null) {
             properties.forEach((prop) => {
+              if (t.isRestElement(prop)) {
+                throw path.buildCodeFrameError(`[${axe} Axye Compiler] Rest element is not supported - destructure object separately.`);
+              }
               if (!t.isObjectProperty(prop)) return;
 
               function buildMemberExpression(baseIdentifier, pathArray) {
@@ -90,22 +94,28 @@ export default function babelPluginAxye({ types: t }) {
                 }, baseIdentifier);
               }
 
-              if (prop.computed) {
-                const inlineSelectorId = path.scope.generateUidIdentifier('dynamicSel');
-                const selectorParam = t.identifier('_s');
+              const isLiteralKey = t.isStringLiteral(prop.key) || t.isNumericLiteral(prop.key);
 
-                const baseExpr = currentDynamicSelectorId
+              if (prop.computed && !isLiteralKey) {
+                const inlineSelectorId = path.scope.generateUidIdentifier('dynamicSel');
+                const selectorParam = path.scope.generateUidIdentifier('s');
+
+                const rootExpr = currentDynamicSelectorId
                   ? t.callExpression(t.cloneNode(currentDynamicSelectorId), [selectorParam])
-                  : buildMemberExpression(selectorParam, currentPath);
+                  : selectorParam;
+
+                const baseExpr = buildMemberExpression(rootExpr, currentPath);
 
                 const computedMember = t.memberExpression(baseExpr, prop.key, true);
                 const innerArrow = t.arrowFunctionExpression([selectorParam], computedMember);
 
-                const nextDynamicKeys = [...dynamicKeysAccumulator, t.cloneNode(prop.key)];
+                const deps = currentDynamicSelectorId
+                  ? [t.cloneNode(currentDynamicSelectorId), t.cloneNode(prop.key)]
+                  : [t.cloneNode(prop.key)];
 
                 const useCallbackCall = t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useCallback')), [
                   innerArrow,
-                  t.arrayExpression(nextDynamicKeys),
+                  t.arrayExpression(deps),
                 ]);
 
                 newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(inlineSelectorId, useCallbackCall)]));
@@ -119,9 +129,15 @@ export default function babelPluginAxye({ types: t }) {
                 }
 
                 if (t.isObjectPattern(targetValue)) {
-                  extractStatePaths(targetValue.properties, [], inlineSelectorId, nextDynamicKeys);
+                  if (topLevelDefaultValue) {
+                    throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested objects are not supported - set defaults only on final properties.`);
+                  }
+                  extractStatePaths(targetValue.properties, [], inlineSelectorId);
                 } else if (t.isArrayPattern(targetValue)) {
-                  extractArrayPaths(targetValue.elements, [], inlineSelectorId, nextDynamicKeys);
+                  if (topLevelDefaultValue) {
+                    throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested arrays are not supported - set defaults only on final properties.`);
+                  }
+                  extractArrayPaths(targetValue.elements, [], inlineSelectorId);
                 } else {
                   const dynamicValueId = path.scope.generateUidIdentifier('dynamicVal');
                   newNodes.push(
@@ -134,14 +150,14 @@ export default function babelPluginAxye({ types: t }) {
                   if (topLevelDefaultValue) {
                     finalValue = t.logicalExpression('??', dynamicValueId, topLevelDefaultValue);
                   }
-                  newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(targetValue, finalValue)]));
+                  newNodes.push(t.variableDeclaration(declKind, [t.variableDeclarator(targetValue, finalValue)]));
                 }
 
                 return;
               }
 
-              const keyName = getKeyName(prop.key);
-              if (!keyName) {
+              const keyName = t.isNumericLiteral(prop.key) ? prop.key.value : getKeyName(prop.key);
+              if (keyName === null || keyName === undefined) {
                 throw path.buildCodeFrameError(`[${axe} Axye Compiler] Unsupported key type.`);
               }
 
@@ -156,16 +172,24 @@ export default function babelPluginAxye({ types: t }) {
               }
 
               if (t.isObjectPattern(targetValue)) {
-                extractStatePaths(targetValue.properties, nextPath, currentDynamicSelectorId, dynamicKeysAccumulator);
+                if (defaultValue) {
+                  throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested objects are not supported - set defaults only on final properties.`);
+                }
+                extractStatePaths(targetValue.properties, nextPath, currentDynamicSelectorId);
               } else if (t.isArrayPattern(targetValue)) {
-                extractArrayPaths(targetValue.elements, nextPath, currentDynamicSelectorId, dynamicKeysAccumulator);
+                if (defaultValue) {
+                  throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested arrays are not supported - set defaults only on final properties.`);
+                }
+                extractArrayPaths(targetValue.elements, nextPath, currentDynamicSelectorId);
               } else {
                 const localIdentifier = targetValue;
-                const selectorParam = t.identifier('_s');
+                const selectorParam = path.scope.generateUidIdentifier('s');
 
-                const finalMemberExpression = currentDynamicSelectorId
-                  ? buildMemberExpression(t.callExpression(t.cloneNode(currentDynamicSelectorId), [selectorParam]), [keyName])
-                  : buildMemberExpression(selectorParam, nextPath);
+                const rootExpr = currentDynamicSelectorId
+                  ? t.callExpression(t.cloneNode(currentDynamicSelectorId), [selectorParam])
+                  : selectorParam;
+
+                const finalMemberExpression = buildMemberExpression(rootExpr, nextPath);
 
                 let targetSelectorId;
 
@@ -175,7 +199,7 @@ export default function babelPluginAxye({ types: t }) {
 
                   const useCallbackCall = t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('useCallback')), [
                     innerArrow,
-                    t.arrayExpression(dynamicKeysAccumulator.map((k) => t.cloneNode(k))),
+                    t.arrayExpression([t.cloneNode(currentDynamicSelectorId)]),
                   ]);
                   newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(targetSelectorId, useCallbackCall)]));
                 } else {
@@ -192,7 +216,7 @@ export default function babelPluginAxye({ types: t }) {
                   useAxyeCall = t.logicalExpression('??', useAxyeCall, defaultValue);
                 }
 
-                newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(localIdentifier, useAxyeCall)]));
+                newNodes.push(t.variableDeclaration(declKind, [t.variableDeclarator(localIdentifier, useAxyeCall)]));
               }
             });
           }
@@ -200,7 +224,7 @@ export default function babelPluginAxye({ types: t }) {
           id.properties.forEach((prop) => {
             if (t.isRestElement(prop)) {
               const methodsId = getOrCreateStoreInstance();
-              newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(prop.argument, t.cloneNode(methodsId))]));
+              newNodes.push(t.variableDeclaration(declKind, [t.variableDeclarator(prop.argument, t.cloneNode(methodsId))]));
               return;
             }
 
@@ -209,32 +233,39 @@ export default function babelPluginAxye({ types: t }) {
             const rootKeyName = getKeyName(prop.key);
 
             if (rootKeyName === 'state') {
-              if (t.isObjectPattern(prop.value)) {
-                extractStatePaths(prop.value.properties);
-              } else if (t.isArrayPattern(prop.value)) {
-                extractArrayPaths(prop.value.elements, ['state'], null, []);
-              } else if (t.isIdentifier(prop.value) || t.isAssignmentPattern(prop.value)) {
-                let localIdentifier = prop.value;
-                let defaultValue = null;
+              let stateTarget = prop.value;
+              let stateDefault = null;
 
-                if (t.isAssignmentPattern(prop.value)) {
-                  localIdentifier = prop.value.left;
-                  defaultValue = prop.value.right;
+              if (t.isAssignmentPattern(stateTarget)) {
+                stateDefault = stateTarget.right;
+                stateTarget = stateTarget.left;
+              }
+
+              if (t.isObjectPattern(stateTarget)) {
+                if (stateDefault) {
+                  throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested objects are not supported - set defaults only on final properties.`);
                 }
-
+                extractStatePaths(stateTarget.properties);
+              } else if (t.isArrayPattern(stateTarget)) {
+                if (stateDefault) {
+                  throw path.buildCodeFrameError(`[${axe} Axye Compiler] Default values on nested arrays are not supported - set defaults only on final properties.`);
+                }
+                extractArrayPaths(stateTarget.elements, ['state'], null);
+              } else if (t.isIdentifier(stateTarget)) {
+                const selectorParam = path.scope.generateUidIdentifier('s');
                 const targetSelectorId = programPath.scope.generateUidIdentifier('axyeSel');
                 const staticSelector = t.variableDeclaration('const', [
                   t.variableDeclarator(
                     targetSelectorId,
-                    t.arrowFunctionExpression([t.identifier('_s')], t.memberExpression(t.identifier('_s'), t.identifier('state'))),
-                  ),
+                    t.arrowFunctionExpression([selectorParam], t.memberExpression(selectorParam, t.identifier('state')))
+                  )
                 ]);
                 programPath.scope.data.axyeSelectors.push(staticSelector);
                 let useAxyeCall = t.callExpression(t.identifier('useAxye'), [StoreClassArg, targetSelectorId]);
-                if (defaultValue) {
-                  useAxyeCall = t.logicalExpression('??', useAxyeCall, defaultValue);
+                if (stateDefault) {
+                  useAxyeCall = t.logicalExpression('??', useAxyeCall, stateDefault);
                 }
-                newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(localIdentifier, useAxyeCall)]));
+                newNodes.push(t.variableDeclaration(declKind, [t.variableDeclarator(stateTarget, useAxyeCall)]));
               }
             } else {
               let localIdentifier = prop.value;
@@ -248,7 +279,7 @@ export default function babelPluginAxye({ types: t }) {
               if (defaultValue) {
                 methodAccess = t.logicalExpression('??', methodAccess, defaultValue);
               }
-              newNodes.push(t.variableDeclaration('const', [t.variableDeclarator(localIdentifier, methodAccess)]));
+              newNodes.push(t.variableDeclaration(declKind, [t.variableDeclarator(localIdentifier, methodAccess)]));
             }
           });
           path.replaceWithMultiple(newNodes);
