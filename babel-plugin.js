@@ -254,13 +254,16 @@ export default function babelPluginAxye({ types: t }) {
               } else if (t.isIdentifier(stateTarget)) {
                 const selectorParam = path.scope.generateUidIdentifier('s');
                 const targetSelectorId = programPath.scope.generateUidIdentifier('axyeSel');
+
                 const staticSelector = t.variableDeclaration('const', [
                   t.variableDeclarator(
                     targetSelectorId,
-                    t.arrowFunctionExpression([selectorParam], t.memberExpression(selectorParam, t.identifier('state')))
+                    t.arrowFunctionExpression([selectorParam], t.callExpression(t.memberExpression(selectorParam, t.identifier('_stateSnapshot')), []))
                   )
                 ]);
+
                 programPath.scope.data.axyeSelectors.push(staticSelector);
+
                 let useAxyeCall = t.callExpression(t.identifier('useAxye'), [StoreClassArg, targetSelectorId]);
                 if (stateDefault) {
                   useAxyeCall = t.logicalExpression('??', useAxyeCall, stateDefault);

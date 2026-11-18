@@ -35,6 +35,8 @@ export class Axye<P = unknown, S = unknown> extends (React.Component as new <P, 
   static get Context(): React.Context<unknown>;
   _listeners: Set<() => void>;
   _subscribe(listener: () => void): () => void;
+
+  _stateSnapshot(): Readonly<S>;
 }
 
 export type AxyeConstructor<P, S, I extends Axye<P, S>> = {

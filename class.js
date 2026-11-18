@@ -30,6 +30,14 @@ export default class Axye extends React.Component {
     return () => this._listeners.delete(listener);
   };
 
+  _snapshot = null;
+  _stateSnapshot = () => {
+    if (this._snapshot === null) {
+      this._snapshot = { ...this.state };
+    }
+    return this._snapshot;
+  };
+
   constructor(props) {
     super(props);
     this.state = this.state || {};
@@ -73,6 +81,8 @@ export default class Axye extends React.Component {
     } else if (updater && typeof updater === 'object') {
       Object.assign(this.state, updater);
     }
+
+    this._snapshot = null;
 
     this._listeners.forEach((listener) => listener());
     if (callback) callback();

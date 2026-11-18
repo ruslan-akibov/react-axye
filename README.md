@@ -158,9 +158,9 @@ Under the hood, the compiler creates granular static selectors (or memoized ones
 
 ## Limitations
 
-* Destructuring only the `state`, such as `const { state } = useAxye(...)` will not be reactive. You must access specific properties from `state` to trigger reactivity.
+* Destructuring the entire `state`, such as `const { state } = useAxye(...)`, may cause unnecessary re-renders. Prefer accessing specific properties instead.
 
-* Rest patterns, such as `const { state: { value, ...rest } } = useAxye(...)` are not supported yet.
+* Rest patterns, such as `const { state: { value, ...rest } } = useAxye(...)`, are not supported yet.
 
 * Global *Store* instances are not supported with server-side rendering.
 
