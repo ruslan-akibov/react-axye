@@ -1,15 +1,15 @@
 import * as React from 'react';
 
-export declare function track<T, A extends unknown[], R>(
+export function track<T, A extends unknown[], R>(
   originalMethod: (...args: A) => Promise<R>,
   context: ClassMethodDecoratorContext<T, (...args: A) => Promise<R>>,
 ): (...args: A) => Promise<R>;
 
-export type AsyncMethodKeys<T> = {
+type AsyncMethodKeys<T> = {
   [K in keyof T]: T[K] extends (...args: unknown[]) => Promise<unknown> ? K : never;
 }[keyof T];
 
-export type TrackedProperties<T> = {
+type TrackedProperties<T> = {
   [K in AsyncMethodKeys<T> as `${K & string}Loading`]?: boolean;
 } & {
   [K in AsyncMethodKeys<T> as `${K & string}Error`]?: Error | null;
@@ -17,7 +17,7 @@ export type TrackedProperties<T> = {
   readonly isLoading?: boolean;
 };
 
-export interface AxyeSetState<S, P> {
+interface AxyeSetState<S, P> {
   (updater: Partial<S>, callback?: () => void): void;
 
   <R>(
@@ -39,17 +39,17 @@ export class Axye<P = unknown, S = unknown> extends (React.Component as new <P, 
   _stateSnapshot(): Readonly<S>;
 }
 
-export type AxyeConstructor<P, S, I extends Axye<P, S>> = {
+type AxyeConstructor<P, S, I extends Axye<P, S>> = {
   new (props: P): I;
 };
 
-export interface AxyeInstance<S, I> {
+interface AxyeInstance<S, I> {
   state: Readonly<S> & TrackedProperties<I>;
 }
 
 type Resolve<T> = { [K in keyof T]: T[K] } & {};
 
-export interface UseAxyeHook {
+interface UseAxyeHook {
   <P, S, I extends Axye<P, S>>(StoreClass: AxyeConstructor<P, S, I>): Resolve<I & AxyeInstance<S, I>>;
   <P, S, I extends Axye<P, S>, R>(StoreClass: AxyeConstructor<P, S, I>, selector: (store: Resolve<I & AxyeInstance<S, I>>) => R): R;
 }
