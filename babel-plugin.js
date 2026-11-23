@@ -12,10 +12,16 @@ export default function babelPluginAxye({ types: t }) {
     name: 'babel-plugin-axye',
     visitor: {
       Program: {
-        enter(path) {
+        enter(path, state) {
+          const code = state.file?.code;
+          state.skipAxye = Boolean(code && !code.includes('useAxye'));
+          if (state.skipAxye) return;
+
           path.scope.data.axyeSelectors = [];
         },
-        exit(path) {
+        exit(path, state) {
+          if (state.skipAxye) return;
+
           const selectors = path.scope.data.axyeSelectors || [];
           if (selectors.length > 0) {
             path.unshiftContainer('body', selectors);
@@ -23,7 +29,9 @@ export default function babelPluginAxye({ types: t }) {
         },
       },
 
-      AssignmentExpression(path) {
+      AssignmentExpression(path, state) {
+        if (state.skipAxye) return;
+
         const { right } = path.node;
 
         if (t.isCallExpression(right) && t.isIdentifier(right.callee, { name: 'useAxye' })) {
@@ -31,7 +39,9 @@ export default function babelPluginAxye({ types: t }) {
         }
       },
 
-      VariableDeclaration(path) {
+      VariableDeclaration(path, state) {
+        if (state.skipAxye) return;
+
         const declarations = path.node.declarations;
         if (declarations.length !== 1) return;
 
