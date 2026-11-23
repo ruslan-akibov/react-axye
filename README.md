@@ -69,12 +69,14 @@ Since your *Store* is a `React.Component`, you can use it in any way possible:
 </MyStore>
 ```
 * You can have any number of *Stores* in your application, arranged in any order - the nearest store of the required type will be used, just like with `React.Context`.
-* You can omit *Store* rendering entirely - in this case, a global persistent instance will be created.
+* You can omit *Store* rendering entirely - in this case, a global persistent instance will be created automatically.
+* Alternatively, you can create a global *Store* manually somewhere in your code, such as `new MyStore({ ... })`.
 
 
 ## Track
 
 To handle loading states and errors, you can use the `@track` decorator:
+> ⚠️ Make sure Stage 3 decorators are enabled in your build setup.
 ```ts
 import { Axye, track } from 'axye';
 
@@ -112,15 +114,11 @@ The global `isLoading` state is available as well.
 
 ## Plugin
 
-Please place the compiler after all other plugins.
-> ⚠️ You also need to configure modern decorators if you want to use `@track`.
+Typically, the compiler plugin should be placed last in your plugins list.  
 
-* `axye/babel` - if you are using Babel:
+`axye/babel` - if you are using Babel:
 ```json
 {
-  "presets": [
-    ["@babel/preset-typescript", { "isTSX": true, "allExtensions": true }]
-  ],
   "plugins": [
     ["@babel/plugin-proposal-decorators", { "version": "2023-11" }],
 
@@ -129,7 +127,7 @@ Please place the compiler after all other plugins.
 }
 ```
 
-* `axye/vite` - if you are using Vite:
+`axye/vite` - if you are using Vite:
 ```js
 import { defineConfig } from 'vite';
 import babel from '@rolldown/plugin-babel'; // You should have this plugin
@@ -151,18 +149,27 @@ export default defineConfig({
 ```
 
 
+## Caveats
+
+⛔ Destructuring the entire `state`, such as `const { state } = useAxye(MyStore)`, may cause unnecessary re-renders and severe performance degradation. Prefer accessing specific properties instead.  
+Using the *Store* instance directly, such as `const store = useAxye(MyStore)`, or misconfiguring the compiler plugin will lead to the same issue.
+
+✅ If you do not access `state`, such as `const { clearValue } = useAxye(MyStore)`, the component will not be reactive and will never re-render.
+
+❌ Rest patterns on `state`, such as `const { state: { value, ...rest } } = useAxye(MyStore)`, are not supported yet.
+
+✅ Top-level rest patterns, such as `const { ...store } = useAxye(MyStore)`, have special support: `store` will refer to your *Store* instance, and the component will not become reactive unless you also destructure `state`.
+
+✅ Default values, such as `const { state: { value = 111 } } = useAxye(MyStore)`, are supported on leaf properties and apply to both `undefined` and `null` values.
+
+✅ Custom selectors, such as `const value = useAxye(MyStore, s => s.computedValue)`, are supported even without the compiler plugin, provided you ensure stable return values.
+
+❌ Global *Store* instances are not supported with server-side rendering; you should render the *Store* within the React tree instead.
+
+
 ## Magic
 
-Under the hood, the compiler creates granular static selectors (or memoized ones, if you are using dynamic keys). It then subscribes them via `useSyncExternalStore` to a provider, which is a static `React.Context` rendered by your *Store*. The store's `setState` method is overridden so that it doesn't trigger a full re-render, but instead directly notifies the subscribers.
-
-
-## Limitations
-
-* Destructuring the entire `state`, such as `const { state } = useAxye(...)`, may cause unnecessary re-renders. Prefer accessing specific properties instead.
-
-* Rest patterns, such as `const { state: { value, ...rest } } = useAxye(...)`, are not supported yet.
-
-* Global *Store* instances are not supported with server-side rendering.
+Under the hood, the compiler finds `useAxye` hooks and creates granular static selectors (or memoized ones, if you are using dynamic keys). It then subscribes them via `useSyncExternalStore` to a provider, which is a static `React.Context` rendered by your *Store*. The store's `setState` method is overridden so that it doesn't trigger a full re-render, but instead directly notifies the subscribers.
 
 
 ## Example

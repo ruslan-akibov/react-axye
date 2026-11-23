@@ -3,6 +3,10 @@ import { Immer } from 'immer';
 
 const immer = new Immer({ autoFreeze: false });
 
+const axe = '\u{1FA93}';
+const WARNED_STORES = new Set();
+const GLOBAL_CACHE = new Map();
+
 const IGNORED_METHODS = new Set([
   'constructor',
   'render',
@@ -33,13 +37,20 @@ export default class Axye extends React.Component {
   _snapshot = null;
   _stateSnapshot = () => {
     if (this._snapshot === null) {
+      const StoreClass = this.constructor;
+
+      if (!WARNED_STORES.has(StoreClass)) {
+        console.error(`[${axe} ${StoreClass.name}] The compiler plugin is not configured, or the entire Store/state is being used. This may cause unnecessary re-renders and severe performance degradation.`);
+        WARNED_STORES.add(StoreClass);
+      }
+
       this._snapshot = { ...this.state };
     }
     return this._snapshot;
   };
 
-  constructor(props) {
-    super(props);
+  constructor(props = {}, context) {
+    super(props, context);
     this.state = this.state || {};
     this._contextProvider = this.constructor.Context.Provider;
 
@@ -65,6 +76,30 @@ export default class Axye extends React.Component {
     for (const name of methodsToBind) {
       this[name] = this[name].bind(this);
     }
+
+    if (arguments.length < 2) {
+      const StoreClass = this.constructor;
+
+      if (typeof window === 'undefined' || !window?.document) {
+        throw new Error(`[${axe} ${StoreClass.name}] Global store instances are not supported on SSR. Render <${StoreClass.name} ... /> within the React tree instead.`);
+      }
+
+      if (GLOBAL_CACHE.has(StoreClass)) {
+        console.error(`[${axe} ${StoreClass.name}] Global store instance already exists and will be overwritten. Make sure you didn't instantiate it twice unintentionally.`);
+      }
+
+      GLOBAL_CACHE.set(StoreClass, this);
+
+      if (typeof this.componentDidMount === 'function') {
+        queueMicrotask(() => {
+          this.componentDidMount();
+        });
+      }
+    }
+  }
+
+  static _globalInstance(props) {
+    return GLOBAL_CACHE.get(this) || new this(props);
   }
 
   setState(updater, callback) {

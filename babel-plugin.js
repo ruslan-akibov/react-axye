@@ -49,7 +49,7 @@ export default function babelPluginAxye({ types: t }) {
         const { id, init } = decl;
 
         if (t.isCallExpression(init) && t.isIdentifier(init.callee, { name: 'useAxye' }) && t.isObjectPattern(id)) {
-          if (!init.arguments || init.arguments.length === 0) return;
+          if (!init.arguments || init.arguments.length !== 1) return;
 
           const declKind = path.node.kind;
           const StoreClassArg = t.cloneNode(init.arguments[0]);
