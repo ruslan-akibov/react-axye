@@ -76,7 +76,6 @@ Since your *Store* is a `React.Component`, you can use it in any way possible:
 ## Track
 
 To handle loading states and errors, you can use the `@track` decorator:
-> ⚠️ Make sure Stage 3 decorators are enabled in your build setup.
 ```ts
 import { Axye, track } from 'axye';
 
@@ -99,6 +98,7 @@ class MyStore extends Axye<unknown, MyStoreState> {
   }
 }
 ```
+> ⚠️ Make sure decorators are enabled in your build setup.
 
 Then, you can use the corresponding `...Loading` and `...Error` values:
 ```js
@@ -121,7 +121,6 @@ Typically, the compiler plugin should be placed last in your plugins list.
 {
   "plugins": [
     ["@babel/plugin-proposal-decorators", { "version": "2023-11" }],
-
     "axye/babel"
   ]
 }
@@ -129,20 +128,12 @@ Typically, the compiler plugin should be placed last in your plugins list.
 
 `axye/vite` - if you are using Vite:
 ```js
-import { defineConfig } from 'vite';
-import babel from '@rolldown/plugin-babel'; // You should have this plugin
-import react from '@vitejs/plugin-react';
+// Requires @rolldown/plugin-babel to be installed
 import axye from 'axye/vite';
 
 export default defineConfig({
   plugins: [
-    babel({
-      plugins: [
-        ["@babel/plugin-proposal-decorators", { version: "2023-11" }]
-      ]
-    }),
     react(),
-
     axye()
   ]
 });
@@ -151,18 +142,24 @@ export default defineConfig({
 
 ## Caveats
 
-⛔ Destructuring the entire `state`, such as `const { state } = useAxye(MyStore)`, may cause unnecessary re-renders and severe performance degradation. Prefer accessing specific properties instead.  
-Using the *Store* instance directly, such as `const store = useAxye(MyStore)`, or misconfiguring the compiler plugin will lead to the same issue.
+⛔ `const { state } = useAxye(MyStore)`  
+Destructuring the entire `state` may cause unnecessary re-renders and severe performance degradation. Prefer accessing specific properties instead.  
+Using the *Store* instance directly, like `const store = useAxye(MyStore)`, or misconfiguring the compiler plugin will lead to the same issue.
 
-✅ If you do not access `state`, such as `const { clearValue } = useAxye(MyStore)`, the component will not be reactive and will never re-render.
+✅ `const { clearValue } = useAxye(MyStore)`  
+If you do not access `state`, the component will not be reactive and will never re-render.
 
-❌ Rest patterns on `state`, such as `const { state: { value, ...rest } } = useAxye(MyStore)`, are not supported yet.
+❌ `const { state: { value, ...rest } } = useAxye(MyStore)`  
+Rest patterns on `state` are not supported yet.
 
-✅ Top-level rest patterns, such as `const { ...store } = useAxye(MyStore)`, have special support: `store` will refer to your *Store* instance, and the component will not become reactive unless you also destructure `state`.
+✅ `const { ...store } = useAxye(MyStore)`  
+Top-level rest patterns have special support: `store` will refer to your *Store* instance, and the component will not become reactive unless you also destructure `state`.
 
-✅ Default values, such as `const { state: { value = 111 } } = useAxye(MyStore)`, are supported on leaf properties and apply to both `undefined` and `null` values.
+✅ `const { state: { value = 111 } } = useAxye(MyStore)`  
+Default values are supported on leaf properties and apply to both `undefined` and `null` values.
 
-✅ Custom selectors, such as `const value = useAxye(MyStore, s => s.computedValue)`, are supported even without the compiler plugin, provided you ensure stable return values.
+✅ `const value = useAxye(MyStore, s => s.computedValue)`  
+Custom selectors are supported even without the compiler plugin, provided you ensure stable return values.
 
 ❌ Global *Store* instances are not supported with server-side rendering; you should render the *Store* within the React tree instead.
 
