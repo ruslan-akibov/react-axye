@@ -5,6 +5,12 @@ export function track<T, A extends unknown[], R>(
   context: ClassMethodDecoratorContext<T, (...args: A) => Promise<R>>,
 ): (...args: A) => Promise<R>;
 
+export function track<A extends unknown[], R>(
+  target: object,
+  propertyKey: string | symbol,
+  descriptor: TypedPropertyDescriptor<(...args: A) => Promise<R>>,
+): TypedPropertyDescriptor<(...args: A) => Promise<R>> | void;
+
 type AsyncMethodKeys<T> = {
   [K in keyof T]: T[K] extends (...args: unknown[]) => Promise<unknown> ? K : never;
 }[keyof T];
@@ -37,6 +43,7 @@ export class Axye<P = unknown, S = unknown> extends (React.Component as new <P, 
   _subscribe(listener: () => void): () => void;
 
   _stateSnapshot(): Readonly<S>;
+  static _globalInstance(): unknown;
 }
 
 type AxyeConstructor<P, S, I extends Axye<P, S>> = {
