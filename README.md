@@ -5,7 +5,7 @@
 
 # Axye
 
-> 🪓 This is an experimental library. Please ensure you have read the source code and fully understand what is happening under the hood before using it in any production-ready or real-world projects.
+> 🪓 Brand-new and experimental - things might behave unexpectedly, so make sure you understand how it works.
 
 A fresh take on state management. Let's prepare the staff. We'll blend:
 * Granular updates inspired by Zustand or RTK
@@ -70,7 +70,7 @@ Since your *Store* is a `React.Component`, you can use it in any way possible:
 ```
 * You can have any number of *Stores* in your application, arranged in any order - the nearest store of the required type will be used, just like with `React.Context`.
 * You can omit *Store* rendering entirely - in this case, a global persistent instance will be created automatically.
-* Alternatively, you can create a global *Store* manually somewhere in your code, such as `new MyStore({ ... })`.
+* Alternatively, you can create a global *Store* manually (one per type), like `new MyStore({ ... })`
 
 
 ## Track
@@ -103,9 +103,9 @@ class MyStore extends Axye<unknown, MyStoreState> {
 Then, you can use the corresponding `...Loading` and `...Error` values:
 ```js
 function Second() {
-  const { state: { clearValueLoading, clearValueError }, clearValue } = useAxye(MyStore);
+  const { state: { clearValueLoading }, clearValue } = useAxye(MyStore);
   
-  return <button disabled={clearValueLoading} onClick={clearValue}>clear</button>;
+  return <button disabled={clearValueLoading} onClick={clearValue} />;
 }
 ```
 
